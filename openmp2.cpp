@@ -4,6 +4,7 @@
 #include <math.h>
 #include "common.h"
 #include <iostream>
+#include <omp.h>
 using namespace std;
 
 
@@ -21,7 +22,7 @@ using namespace std;
 //
 int main( int argc, char **argv )
 {    
-    int navg,nabsavg=0;
+    int navg,nabsavg=0, head_index;
     double davg,dmin, absmin=1.0, absavg=0.0;
 
     if( find_option( argc, argv, "-h" ) >= 0 )
@@ -73,31 +74,35 @@ int main( int argc, char **argv )
     double simulation_time = read_timer( );
 	bool flag = false;
     
-    for( int step = 0; step < NSTEPS; step++ )
-    {
-        // cout << endl << endl;
-        navg = 0;
-        davg = 0.0;
-        dmin = 1.0;
+    #pragma omp parallel private(dmin) num_threads(4)
+	{int numthreads = omp_get_num_threads();
+		cout << "numthreads= " <<numthreads << endl;
+	    for( int step = 0; step < NSTEPS; step++ )
+  		  {
+    		    // cout << endl << endl;
+      		    navg = 0;
+      		    davg = 0.0;
+      	            dmin = 1.0;
         // for(int i = 0; i < n; i++){
         //     r[i][0] = particles[i].x;
         //     r[i][1] = particles[i].y;
         // }
 
-        for(int c = 0; c < num_cells; c++) head[c] = -1;
-        for(int i = 0; i < n; i++){
+       		    for(int c = 0; c < num_cells; c++) head[c] = -1;
+       			#pragma omp parallel for private(mc, head_index)
+			 for(int i = 0; i < n; i++){
             // cout << "initial point: " << particles[i].x << ", " << particles[i].y << endl;
             // for(int a = 0; a < 2; a++) mc[a] = r[i][a] / cell_edge;
-            mc[0] = floor(particles[i].x / cell_edge);
-            mc[1] = floor(particles[i].y / cell_edge);
-            int head_index = mc[0] * x_cells + mc[1];
-            // if(flag == false){
-            //     cout << "mc: ";
-            //     for(int i = 0; i < 2; i++){
-            //         cout << mc[i] << " ";
-            //     }
-            //     cout << " cell index: " << head_index << endl;
-            // }
+          		  mc[0] = floor(particles[i].x / cell_edge);
+           		  mc[1] = floor(particles[i].y / cell_edge);
+           		  head_index = mc[0] * x_cells + mc[1];
+             if(flag == false){
+                 cout << "mc: ";
+                 for(int i = 0; i < 2; i++){
+                     cout << mc[i] << " ";
+                 }
+                 cout << " cell index: " << head_index << endl;
+             }
             lscl[i] = head[head_index];
             head[head_index] = i;
         }
@@ -113,14 +118,15 @@ int main( int argc, char **argv )
             // cout << endl;
         // }
         // flag = true;
+    
        
-        for(mc[0] = 0; mc[0] < x_cells; (mc[0])++){
+	 for(mc[0] = 0; mc[0] < x_cells; (mc[0])++){
             for(mc[1] = 0; mc[1] < x_cells; (mc[1])++){
                 int c = mc[0] * x_cells + mc[1];
                // cout << "Vector index: " << mc[0] << ", " << mc[1] << " scalar index: " << c << endl;
                 for(mc1[0]=mc[0]-1; mc1[0] <= mc[0]+1; (mc1[0])++){
                     for(mc1[1]=mc[1]-1; mc1[1] <= mc[1]+1; (mc1[1])++) {
-                        cout << "\t Neighbor index: " << mc1[0] << ", " << mc1[1] << endl;
+                        // cout << "\t Neighbor index: " << mc1[0] << ", " << mc1[1] << endl;
                         bool test = false;
                         int j;
                         int i;
@@ -131,7 +137,7 @@ int main( int argc, char **argv )
                             }
                         }
                         int c1 = ((mc1[0]+x_cells)%x_cells)*x_cells + ((mc1[1]+x_cells)%x_cells);
-                        // cout << " scalar index: " << c1 << endl;
+                         //cout << " scalar index: " << c1 << endl;
                         i = head[c];
                         while(i != -1){
                             if(test == false){
@@ -146,8 +152,8 @@ int main( int argc, char **argv )
                                 if(i < j){
                                     // cout << "Applying particle " << i << " to particle " << j;
                                      //double dx = particles[i].x - particles[j].x;
-                                     //double dy = particles[i].y - particles[j].y;
-                                     //double r2 = dx * dx + dy * dy;
+                                    // double dy = particles[i].y - particles[j].y;
+                                    // double r2 = dx * dx + dy * dy;
                                     // cout << ", ditance = " << r2 << " cutoff = " << cutoff * cutoff << endl;
                                     apply_force( particles[i], particles[j],&dmin,&davg,&navg);
                                 }
@@ -156,7 +162,7 @@ int main( int argc, char **argv )
                             i = lscl[i];
                             }
                         }
-                        // cout << "Vector index: " << mc1[0] << ", " << mc1[1] << " scalar index: " << c1 << endl;
+                         //cout << "Vector index: " << mc1[0] << ", " << mc1[1] << " scalar index: " << endl;
                     }
                 }
             }
@@ -186,27 +192,34 @@ int main( int argc, char **argv )
         //
         //  move particles
         //
-        for( int i = 0; i < n; i++ ) 
+ 	#pragma omp parallel for 
+       	 for( int i = 0; i < n; i++ ) 
             move( particles[i] );		
 
-        if( find_option( argc, argv, "-no" ) == -1 )
+      	  if( find_option( argc, argv, "-no" ) == -1 )
         {
           //
           // Computing statistical data
           //
+          #pragma omp master
           if (navg) {
             absavg +=  davg/navg;
             nabsavg++;
           }
+
+	  #pragma omp critical	
           if (dmin < absmin) absmin = dmin;
 		
           //
           //  save if necessary
           //
+
+	  #pragma omp master
           if( fsave && (step%SAVEFREQ) == 0 )
               save( fsave, n, particles );
         }
     }
+}
     simulation_time = read_timer( ) - simulation_time;
     
     printf( "n = %d, simulation time = %g seconds", n, simulation_time);
