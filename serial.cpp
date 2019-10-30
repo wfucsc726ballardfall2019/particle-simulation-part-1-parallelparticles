@@ -90,8 +90,8 @@ int main( int argc, char **argv )
         for(int cell_x = 0; cell_x < cells_in_row; cell_x++){
             for(int cell_y = 0; cell_y < cells_in_row; cell_y++){
                 int cell_index = cell_x * cells_in_row + cell_y;
-                for (int v = 0; v < cell_vector[cell_index].size(); v++){
-                    particles[cell_vector[cell_index][v]].ax = particles[cell_vector[cell_index][v]].ay = 0;
+                for (int p = 0; p < cell_vector[cell_index].size(); p++){
+                    particles[cell_vector[cell_index][p]].ax = particles[cell_vector[cell_index][p]].ay = 0;
                 }
                 // cout << "Cell index " << cell_x << ", " << cell_y << " (" << cell_index << ")" << endl;
 
@@ -102,12 +102,12 @@ int main( int argc, char **argv )
                             int neighbor_index = ((neighbor_x + cells_in_row) % cells_in_row) * cells_in_row + ((neighbor_y + cells_in_row) % cells_in_row);
                             // cout << "\tNeighbor " << neighbor_x << ", " << neighbor_y << " (" << neighbor_index << ")" << endl;
 
-                            for(int l = 0; l < cell_vector[cell_index].size(); l++){
+                            for(int cell_p = 0; cell_p < cell_vector[cell_index].size(); cell_p++){
                                 // particles[cell_vector[cell_index][l]].ax = particles[cell_vector[cell_index][l]].ay = 0;
-                                for(int m = 0; m < cell_vector[neighbor_index].size(); m++){
+                                for(int neighbor_p = 0; neighbor_p < cell_vector[neighbor_index].size(); neighbor_p++){
                                     // if(cell_vector[cell_index][l] != cell_vector[neighbor_index][m]){
                                         // cout << "\t\tApplying " << cell_vector[cell_index][l] << " (" << particles[cell_vector[cell_index][l]].ax << ", " << particles[cell_vector[cell_index][l]].ay << ") " << " to " << cell_vector[neighbor_index][m] << " (" << particles[cell_vector[neighbor_index][m]].ax << ", " << particles[cell_vector[neighbor_index][m]].ay << ") " << endl;
-                                        apply_force( particles[cell_vector[cell_index][l]], particles[cell_vector[neighbor_index][m]],&dmin,&davg,&navg);
+                                        apply_force( particles[cell_vector[cell_index][cell_p]], particles[cell_vector[neighbor_index][neighbor_p]],&dmin,&davg,&navg);
                                     // }
                                 }
                             }
