@@ -4,23 +4,15 @@
 #include <math.h>
 #include "common.h"
 #include <iostream>
+#include <vector>
 using namespace std;
-
-
-// void print_distance(){
-//     cout << "Applying particle " << i << " to particle " << j;
-//     double dx = particles[i].x - particles[j].x;
-//     double dy = particles[i].y - particles[j].y;
-//     double r2 = dx * dx + dy * dy;
-//     cout << ", ditance = " << r2 << " cutoff = " << cutoff * cutoff << endl;
-// }
 
 
 //
 //  benchmarking program
 //
 int main( int argc, char **argv )
-{    
+{     
     int navg,nabsavg=0;
     double davg,dmin, absmin=1.0, absavg=0.0;
 
@@ -35,27 +27,8 @@ int main( int argc, char **argv )
         return 0;
     }
     
+
     int n = read_int( argc, argv, "-n", 1000 );
-
-    double cutoff = .05;
-    double space_dim = sqrt(n * 0.0005);
-    cout << "Actual space is " << space_dim << " by " << space_dim << endl;
-    // cutoff = space_dim / 
-    double cell_edge = space_dim / floor(space_dim / cutoff);
-    // cell_edge = space_dim / 4;
-    cout << "Cells are size " << cell_edge << " by " << cell_edge << endl;
-    int num_cells = pow((space_dim / cell_edge), 2);
-    // cout << num_cells << endl;
-    int x_cells = (int)sqrt(num_cells);
-    cout << "Using grid size " << x_cells << " by " << x_cells << endl;
-
-
-    int lscl[n]; //might need to check initial values, paper has them all -1s
-    int head[num_cells];
-
-    double r[n][2];
-    double mc[2];
-    int mc1[2];
 
     char *savename = read_string( argc, argv, "-o", NULL );
     char *sumname = read_string( argc, argv, "-s", NULL );
@@ -67,120 +40,111 @@ int main( int argc, char **argv )
     set_size( n );
     init_particles( n, particles );
     
+
+    double cutoff = 0.02;
+    double space_dim = sqrt(n * 0.0005);
+    // cout << "Actual space is " << space_dim << " by " << space_dim << endl;
+    double cell_edge = space_dim / floor(space_dim / cutoff);
+    // cell_edge = space_dim / 4;
+    // cout << "Cells are size " << cell_edge << " by " << cell_edge << endl;
+    int num_cells = pow((space_dim / cell_edge), 2);
+    // cout << num_cells << endl;
+    int cells_in_row = (int)sqrt(num_cells);
+    // cout << "Using grid size " << x_cells << " by " << x_cells << endl;
+
+
+    vector<vector<int> > cell_vector(num_cells);
+
     //
     //  simulate a number of time steps
     //
     double simulation_time = read_timer( );
-	bool flag = false;
-    
     for( int step = 0; step < NSTEPS; step++ )
     {
-        // cout << endl << endl;
+        // cout << endl;
         navg = 0;
         davg = 0.0;
         dmin = 1.0;
-        // for(int i = 0; i < n; i++){
-        //     r[i][0] = particles[i].x;
-        //     r[i][1] = particles[i].y;
-        // }
-
-        for(int c = 0; c < num_cells; c++) head[c] = -1;
-        for(int i = 0; i < n; i++){
-            // cout << "initial point: " << particles[i].x << ", " << particles[i].y << endl;
-            // for(int a = 0; a < 2; a++) mc[a] = r[i][a] / cell_edge;
-            mc[0] = floor(particles[i].x / cell_edge);
-            mc[1] = floor(particles[i].y / cell_edge);
-            int head_index = mc[0] * x_cells + mc[1];
-            // if(flag == false){
-            //     cout << "mc: ";
-            //     for(int i = 0; i < 2; i++){
-            //         cout << mc[i] << " ";
-            //     }
-            //     cout << " cell index: " << head_index << endl;
-            // }
-            lscl[i] = head[head_index];
-            head[head_index] = i;
-        }
-        // if(flag == false){
-            // cout << "Head Array: ";
-            // for(int i = 0; i < num_cells; i++){
-            //     cout << head[i] << " ";
-            // }
-            // cout << endl << "LSCL Array: ";
-            // for(int i = 0; i < n; i++){
-            //     cout << lscl[i] << " ";
-            // }
-            // cout << endl;
-        // }
-        // flag = true;
-       
-        for(mc[0] = 0; mc[0] < x_cells; (mc[0])++){
-            for(mc[1] = 0; mc[1] < x_cells; (mc[1])++){
-                int c = mc[0] * x_cells + mc[1];
-               // cout << "Vector index: " << mc[0] << ", " << mc[1] << " scalar index: " << c << endl;
-                for(mc1[0]=mc[0]-1; mc1[0] <= mc[0]+1; (mc1[0])++){
-                    for(mc1[1]=mc[1]-1; mc1[1] <= mc[1]+1; (mc1[1])++) {
-                        cout << "\t Neighbor index: " << mc1[0] << ", " << mc1[1] << endl;
-                        bool test = false;
-                        int j;
-                        int i;
-                        for(int a=0; a<2; a++) {
-                            if(mc1[a] < 0 || mc1[a] >= x_cells){
-                                // cout << "\tEDGE CASE FOUND: " << mc1[0] << ", " << mc1[1] << endl;
-                                test = true;
-                            }
-                        }
-                        int c1 = ((mc1[0]+x_cells)%x_cells)*x_cells + ((mc1[1]+x_cells)%x_cells);
-                        // cout << " scalar index: " << c1 << endl;
-                        i = head[c];
-                        while(i != -1){
-                            if(test == false){
-                                j = head[c1];
-                            }
-                            else{
-                                j = -1;
-                            }
-                          
-			 	
-                            while(j != -1){
-                                if(i < j){
-                                    // cout << "Applying particle " << i << " to particle " << j;
-                                     //double dx = particles[i].x - particles[j].x;
-                                     //double dy = particles[i].y - particles[j].y;
-                                     //double r2 = dx * dx + dy * dy;
-                                    // cout << ", ditance = " << r2 << " cutoff = " << cutoff * cutoff << endl;
-                                    apply_force( particles[i], particles[j],&dmin,&davg,&navg);
-                                }
-                                j = lscl[j];
-                            }
-                            i = lscl[i];
-                            }
-                        }
-                        // cout << "Vector index: " << mc1[0] << ", " << mc1[1] << " scalar index: " << c1 << endl;
-                    }
-                }
-            }
-        
-
-
-        // navg = 0;
-        //     davg = 0.0;
-        // dmin = 1.0;
         //
         //  compute forces
         //
-        // cout << endl << endl << endl << "NAIVE ALGORITHM" << endl;
+        for(int i = 0; i < num_cells; i++){
+            cell_vector[i].clear();
+        }
+        for(int i = 0; i < n; i++){
+            // cout << particles[i].x << " " << particles[i].y << " ";
+            int cell_x = floor(particles[i].x / cell_edge);
+            int cell_y = floor(particles[i].y / cell_edge);
+            int cell_index = cell_x * cells_in_row + cell_y;
+            // cout << "--> (" << cell_x << ", " << cell_y << ") --> " << cell_index << endl;
+            cell_vector[cell_index].push_back(i);
+        }
+        // for(int i = 0; i < num_cells; i++){
+        //     cout << "Cell " << i << ": ";
+        //     for(int j = 0; j < cell_vector[i].size(); j++){
+        //         cout << cell_vector[i][j] << " ";
+        //     }
+        //     cout << endl;
+        // }
+
+        for(int cell_x = 0; cell_x < cells_in_row; cell_x++){
+            for(int cell_y = 0; cell_y < cells_in_row; cell_y++){
+                int cell_index = cell_x * cells_in_row + cell_y;
+                for (int v = 0; v < cell_vector[cell_index].size(); v++){
+                    particles[cell_vector[cell_index][v]].ax = particles[cell_vector[cell_index][v]].ay = 0;
+                }
+                // cout << "Cell index " << cell_x << ", " << cell_y << " (" << cell_index << ")" << endl;
+
+                for(int neighbor_x = cell_x - 1; neighbor_x <= cell_x + 1; neighbor_x++){
+                    for(int neighbor_y = cell_y - 1; neighbor_y <= cell_y + 1; neighbor_y++){
+
+                        if((neighbor_x >=0 && neighbor_x <= cells_in_row - 1) && (neighbor_y >=0 && neighbor_y <= cells_in_row - 1)){
+                            int neighbor_index = ((neighbor_x + cells_in_row) % cells_in_row) * cells_in_row + ((neighbor_y + cells_in_row) % cells_in_row);
+                            // cout << "\tNeighbor " << neighbor_x << ", " << neighbor_y << " (" << neighbor_index << ")" << endl;
+
+                            for(int l = 0; l < cell_vector[cell_index].size(); l++){
+                                // particles[cell_vector[cell_index][l]].ax = particles[cell_vector[cell_index][l]].ay = 0;
+                                for(int m = 0; m < cell_vector[neighbor_index].size(); m++){
+                                    // if(cell_vector[cell_index][l] != cell_vector[neighbor_index][m]){
+                                        // cout << "\t\tApplying " << cell_vector[cell_index][l] << " (" << particles[cell_vector[cell_index][l]].ax << ", " << particles[cell_vector[cell_index][l]].ay << ") " << " to " << cell_vector[neighbor_index][m] << " (" << particles[cell_vector[neighbor_index][m]].ax << ", " << particles[cell_vector[neighbor_index][m]].ay << ") " << endl;
+                                        apply_force( particles[cell_vector[cell_index][l]], particles[cell_vector[neighbor_index][m]],&dmin,&davg,&navg);
+                                    // }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+            // for(int j = i - cells_in_row; j <= i + cells_in_row; j += cells_in_row){
+            //     for(int k = j - 1; k <= j + 1; k++){
+            //         if(k >=0 && k <= num_cells - 1){
+            //             cout << "\tNeighbor " << k << endl;
+            //             for(int l = 0; l < cell_vector[i].size(); l++){
+            //                 particles[cell_vector[i][l]].ax = particles[cell_vector[i][l]].ay = 0;
+            //                 for(int m = 0; m < cell_vector[k].size(); m++){
+            //                     // cout << l << " " << m << endl;
+            //                     if(cell_vector[i][l] < cell_vector[k][m]){
+                                    
+            //                     }
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
+        
+
+
         // for( int i = 0; i < n; i++ )
         // {
         //     particles[i].ax = particles[i].ay = 0;
         //     for (int j = 0; j < n; j++ ){
-        //         cout << "Applying particle " << i << " to particle " << j;
-        //         double dx = particles[i].x - particles[j].x;
-        //         double dy = particles[i].y - particles[j].y;
-        //         double r2 = dx * dx + dy * dy;
-        //         cout << ", ditance = " << r2 << " cutoff = " << cutoff * cutoff << endl;
-        //         apply_force( particles[i], particles[j],&dmin,&davg,&navg);
+        //         // if(!flag){
+        //             cout << "Applying " << i << " (" << particles[i].ax << ", " << particles[i].ay << ") to " << j << " (" << particles[j].ax << ", " << particles[j].ay << ")" << endl;
+        //         // }
+		// 		apply_force( particles[i], particles[j],&dmin,&davg,&navg);
         //     }
+        //     flag = true;
         // }
  
         //
